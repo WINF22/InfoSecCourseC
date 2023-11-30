@@ -1,17 +1,24 @@
-from arithmetic_factor_groups import ModNMultGroup
+from arithmetic_factor_groups_solution import ModNMultGroup
 from math import gcd
-
+    
 class RSA:
     def __init__(self, p: int, q: int, e: int) -> None:
+        if gcd(e, (p-1)*(q-1))!=1:
+            raise Exception("e must be coprime to phi(n)")
+        self.p = p
+        self.q = q
+        self.n = p*q
+        self.e = e
+        self.group = ModNMultGroup(self.n)
+        self.phi = ModNMultGroup((p-1)*(q-1))
         
-        
-        pass
 
     def encrypt(self, m: int):  
-        pass
+        return self.group.power(m, self.e)
     
     def decrypt(self, c: int):
-        pass
+        d = self.phi.inverse(self.e)
+        return self.group.power(c, d)
     
     
 class Signature:
@@ -22,21 +29,27 @@ class Signature:
         return (m+1)%self.rsa.n
     
     def sign(self, m):
-        pass
+        h = self.hash(m)
+        sig = self.rsa.decrypt(h)
+        return (m, sig)
     
     def verify(self, m, s):
-        pass
-    
+        h = self.hash(m)
+        return self.rsa.encrypt(s[1]) == h
+        
 
 class Diffie_Hellman:
     def __init__(self, n: int, g: int) -> None:
-        pass
+        self.group = ModNMultGroup(n)
+        if not self.group.is_primitive_root(g):
+            raise Exception("g must be a primitive root")
+        self.g = g
     
-    def key_generation(self, a: int, b: int):
-        pass
+    def key_generation(self, alpha: int, beta: int):
+        return (self.group.power(self.g, alpha), self.group.power(self.g, beta))
         
-    def key_exchange(self, a: int, b: int):
-        pass
+    def key_exchange(self, alpha: int, beta: int, ga: int, gb: int):
+        return (self.group.power(gb, alpha), self.group.power(ga, beta))
 
 if __name__ == '__main__':
     p = 11
@@ -58,5 +71,6 @@ if __name__ == '__main__':
     alpha = 3
     beta = 4
 
-    print(f"DH key generation for alpha={alpha} in group (Z/{n}Z)^* with primitive root {g} yields {dh.key_generation(alpha, beta)}")
-    print(f"DH key exchange yields {dh.key_exchange(alpha,beta)}")
+    (ga,gb) = dh.key_generation(alpha, beta)
+    print(f"DH key generation for alpha={alpha} and beta={beta} in group (Z/{n}Z)^* with primitive root {g} yields {dh.key_generation(alpha, beta)}")
+    print(f"DH key exchange yields {dh.key_exchange(alpha,beta, ga, gb)}")
